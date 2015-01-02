@@ -104,7 +104,7 @@ public class SCPIParser {
 
     static {
         tokenPatterns = buildLexer();
-        upperMatch = Pattern.compile("[A-Z_*?]+");
+        upperMatch = Pattern.compile("[A-Z_*]+");
         nullCMDHandler = (String[] args) -> null;
     }
 
@@ -122,13 +122,26 @@ public class SCPIParser {
         Iterator<String> elements = scpipath.iterator();
 
         while (elements.hasNext()) {
-            String element = elements.next();
+            String element = getNonQueryPathElement(elements.next());
             Matcher matcher = upperMatch.matcher(element);
             if (matcher.find()) {
                 shortToLongCMD.put(matcher.group(), element);
             }
         }
         handlers.put(scpipath, handler);
+    }
+    
+    private boolean isQuery(String input) {
+        char lastChar = input.charAt(input.length() - 1);
+        return (lastChar == '?');
+    }
+    
+    private String getNonQueryPathElement(String input) {
+        if (!isQuery(input)) {
+            return input;
+        } else {
+            return input.substring(0, input.length() - 1);
+        }
     }
 
     /**
@@ -255,7 +268,10 @@ public class SCPIParser {
             switch (token.tokenType) {
                 case COMMAND:
                     // normalize all commands to long-version
-                    String longCmd = shortToLongCMD.get(token.data);
+                    boolean isQuery = isQuery(token.data);
+                    String queryKey = getNonQueryPathElement(token.data);
+                    String longCmd = shortToLongCMD.get(queryKey);
+                    longCmd = (!isQuery) ? longCmd : longCmd + "?";
                     activePath.append((null == longCmd) ? token.data : longCmd);
                     inCommand = true;
                     break;

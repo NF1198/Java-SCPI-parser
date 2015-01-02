@@ -36,18 +36,33 @@ public class SCPIParserTest {
     @Test
     public void testSCPIParser() throws SCPIMissingHandlerException {
         parser.setCacheSizeLimit(20);
-        for (String result : parser.accept("*IDN?;VAR:X 23;X?")) {
-            System.out.println(result);
-        }
-        for (String result : parser.accept("VAR:X?")) {
-            System.out.println(result);
-        }
-        for (String result : parser.accept("MEAS:VOLT:DC?;DC?;:MEASure:CURR:AC?")) {
-            System.out.println(result);
-        }
-        for (String result : parser.accept("CONCAT These strings should be \"concatenated.\"")) {
-            System.out.println(result);
-        }
+        String[] results;
+        
+        results = parser.accept("*IDN?;VAR:X 23;X?");
+        Assert.assertEquals(3, results.length);
+        Assert.assertEquals("SCPI Test Parser", results[0]);
+        Assert.assertEquals(null, results[1]);
+        Assert.assertEquals("23", results[2]);
+        
+        results = parser.accept("VAR:X?");
+        Assert.assertEquals(1, results.length);
+        Assert.assertEquals("23", results[0]);
+        
+        results = parser.accept("MEAS:VOLT:DC?;DC?;:MEASure:CURR:AC?");
+        Assert.assertEquals(3, results.length);
+        Assert.assertEquals("2.23", results[0]);
+        Assert.assertEquals("2.23", results[1]);
+        Assert.assertEquals("0.123", results[2]);
+        
+        
+        results = parser.accept("CONCAT These strings should be \"concatenated.\"");
+        Assert.assertEquals(1, results.length);
+        Assert.assertEquals("These strings should be concatenated.", results[0]);
+        
+        results = parser.accept("VAR:W?");
+        Assert.assertEquals(1, results.length);
+        Assert.assertEquals("99", results[0]);
+
     }
 
     /**
@@ -119,6 +134,7 @@ public class SCPIParserTest {
             addHandler("*IDN?", this::IDN);
             addHandler("VAR:X", this::setX);
             addHandler("VAR:X?", this::getX);
+            addHandler("VAR:Width?", this::getWidth);
             addHandler("CONCAT", this::concat);
             addHandler("MEASure:VOLTage:DC?", this::measVoltsDC);
             addHandler("MEASure:CURRent:AC?", this::measCurrentAC);
@@ -145,6 +161,10 @@ public class SCPIParserTest {
                 }
             }
             return null;
+        }
+        
+        String getWidth(String[] args) {
+            return "99";
         }
 
         String measVoltsDC(String[] args) {
